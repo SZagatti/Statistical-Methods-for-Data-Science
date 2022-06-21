@@ -1,0 +1,693 @@
+---
+title: "Homework02 - Group B"
+author: "Matilde Castelli -Eros Fabrici - Sebastiano Zagatti"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    fig_width: 9
+    fig_hight: 7
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# LAB
+
+## Exercise 1
+**Check the biased nature of $s^2_b$ via MC simulation, generating $n=10$ iid values from a normal distribution. Plot also $s^2$ and comment the difference.**
+
+```{r}
+set.seed(123)
+R <-1000
+n <- 10
+#function for the biased variance estimator
+var_biased<-function(n){
+  return (var(n)*(length(n)-1)/length(n))
+}
+
+#retun an array (n x R = 10 x 1000)
+samples <- (replicate(R,rnorm(n,0,1)))
+
+samples_stat<- array(0,c(2,R))
+#samples_stat[1,]<-apply(samples,2,mean)
+
+#unbiased variance
+samples_stat[1,]<-apply(samples,2, var)
+#biased estimator
+samples_stat[2,]<- apply(samples,2,var_biased)
+
+sigma<-1
+
+par (mfrow=c(2,1),mar=c(4,4,2,2), oma=c(0,0,0,0))
+#-----------------plot unbiased estimator
+hist(samples_stat[1, ], breaks= 40, probability = TRUE, 
+     xlab=expression(s^2), main= "Unbiased variance estimator",
+     cex.main=1.0, col="#6AE7CF", border="white")
+#curve(((n-1)/sigma^2) * dchisq(x * ((n-1)/sigma^2), df = n - 1), add = TRUE, col="#368D91", lwd=2, main="N(0,1)")
+abline(v = sigma, col = "#FF8C45", lwd = 4)
+abline(v = mean(samples_stat[1,]), col = "#AF78CB", lwd = 2)
+legend("topright",c("True Variance","Estimated Variance Mean"),cex=.9,col=c("#FF8C45","#AF78CB"),lty=1:1)
+
+#-------------------------------------------- plot biased estimator
+hist(samples_stat[2, ], breaks= 40, probability = TRUE, 
+     xlab=bquote(s_b^2), main= "Biased variance estimator",
+     cex.main=1.0,col="#6AE7CF",border="white")
+abline(v = sigma, col = "#FF8C45", lwd = 4)
+abline(v = mean(samples_stat[2,]), col = "#AF78CB", lwd = 3)
+legend("topright", c("True Variance","Estimated Variance Mean"), 
+       cex=.9,col=c("#FF8C45","#AF78CB"),lty=1:1)
+     
+```
+
+In the first plot we can see the unbiasedness visually, using a density plot of estimated variances with a line for the true variance. We can notice that the variance $s^2$ is an unbiased estimator for the population variance: the expected value or the mean of $s^2$ is very close to the true value of the variance $\sigma^2$.
+On the contrary in the second plot we can see that $s_b^2$ is a bias estimator for the population variance: the expected value or the mean of $s_b^2$ is smaller than the true variance. ($E[s_b^2]$=0.8985435 < $\sigma^2$ = 1). Indeed $E[s_b^2] = \frac{n-1}{n} \sigma^2$, and the bias is $bias(s_b^2)=E[s_b^2]- \sigma^2 = -\sigma^2/n$.
+
+
+```{r}
+set.seed(123)
+R <-1000
+n <- 10
+sigma<-1
+
+var_biased <- function(n){
+  return (var(n)*(length(n)-1)/length(n))
+}
+sampvals <- function(n)(rnorm(n,0,1))
+samplingDist <- function(sampsize=10, nsamp=1000, FUN=var_biased)
+apply(matrix(sampvals(sampsize*nsamp), ncol=sampsize), 1, FUN)
+
+size <- c(10,30,60,100)
+
+df <- data.frame(y1=samplingDist(sampsize=size[1]),
+y2=samplingDist(sampsize=size[2]),
+y3=samplingDist(sampsize=size[3]),
+y4=samplingDist(sampsize=size[4]))
+
+
+bias<-colMeans(df)-sigma
+par (mfrow=c(2,2),mar=c(4,4,2,2), oma=c(0,0,0,0))
+for(i in 1:4){
+
+hist(df[,i], breaks= 40, probability = TRUE, 
+xlab=bquote(s_b^2), main= paste("Biased variance estimator n= ", size[i]), cex.main=1.0,col="#6AE7CF",border="white")
+abline(v = sigma, col = "#FF8C45", lwd = 4)
+abline(v = mean(df[,i]), col = "#AF78CB", lwd = 3)
+legend("topright",c("True Variance","Estimated Variance Mean"),cex=.9,col=c("#FF8C45","#AF78CB"),lty=1:1)
+}
+
+par (mfrow=c(1,1),mar=c(4,4,2,2), oma=c(1,1,1,1))
+plot(size,abs(bias), main = "Bias-sample size", type="o", col="blue",xlab="sample size")
+
+```
+
+For large sample size we can see that we can also rely on the biased estimator $s_b^2$. As the sample size increases the mean of $s_b^2$ get closer and closer to the true population variance and to the value of the unbiased estimator $s^2$, since the difference between $n$ and $n-1$ becomes negligible.
+
+
+
+## Exercise 2
+
+**What happens if a great player decides to join you, now? Try to simulate the data and perform the test again.**
+
+```{r}
+set.seed(101)
+
+#num of observations
+n <- 50
+#num of categories
+K <- 4
+#number of "players"
+m <- 6
+
+nullHypo <- c(7/16, 5/16, 3/16, 1/16)
+
+observed <- matrix(0, nrow = m, ncol = n)
+for (i in 1:m) {
+  observed[i,] <- sample(1:K, n, prob = nullHypo, replace = TRUE)
+}
+
+#p-value very high (0.8074)
+print( chisq.test( table(observed), p = nullHypo ) )
+
+# New player with better skills join
+observed <- rbind(observed, 
+                  sample(1:K, n, prob = c(1/16, 3/16, 5/16, 7/16), replace = TRUE) 
+                 )
+
+#now the p-value is incredibly low
+print(chisq.test( table(observed), p = nullHypo)  )
+```
+The p-value of the first test is very high thus, if we would set the significance level to 5%, we would not reject $H_0$, while, in the second case, after adding the observations of the good player sampled with a different probability vector (i.e. 1/16, 3/16, 5/16, 7/16) the p-value is lesser than 0.01, indicating a strong evidence against $H_0$. 
+
+## Exercise 3
+
+**Sometimes it could be useful to assess the degree of association, or correlation, between paired samples, using the Pearson, the Kendall’s $\tau$ or the Spearman’s $\rho$ correlation coefficient. Regardless of the adopted cofficient, the null hypothesis for a given correlation coefficent $\rho$ is:**
+$$
+H_0:\rho=0.
+$$
+**The test statistic is then defined as**
+$$
+T = r\sqrt{\frac{n-2}{1-r^2}} \underset{H_0}{\sim} t_{n-2}
+$$
+
+**where $r=Corr(X,Y)$ is the Pearson correlation coefficient. Suppose to have two samples of the same length $x1,…,xn,y1,…,yn$, and to measure the association between them. Once we compute the test statistic $t_{obs}$, we may then compute the $p$-value (here we are evaluating a two sided test) as:**
+$$
+p = 2Pr_{H_0}(T \geq |t_{obs}|)
+$$
+**Consider now some of the most followed Instagram accounts in 2018: for each of the owners, we report also the number of Twitter followers (in milions). Are the Instagram and Twitter account somehow associated? Perform a correlation test, compute the p-value and give an answer. Here is the dataframe.**
+
+```{r}
+Owners <- c( "Katy Perry", "Justin Bieber", "Taylor Swift", "Cristiano Ronaldo",
+             "Kim Kardashian", "Ariana Grande", "Selena Gomez", "Demi Lovato")
+Instagram <- c( 69, 98,107, 123, 110, 118, 135, 67)
+Twitter <- c( 109, 106, 86, 72, 59, 57, 56, 56)
+plot( Instagram, Twitter, pch=21, bg=2, xlim=c(60, 150), ylim=c(40, 120) )
+text( Instagram[-6], Twitter[-6]+5, Owners[-6], cex=0.8 )
+text( Instagram[6], Twitter[6]-5, Owners[6], cex=0.8 )
+
+#**Manual Computation of the p-value:**
+
+n <- length(Instagram)
+#compute Pearson's correlation coefficient
+r <- ((n*sum(Instagram*Twitter))-(sum(Instagram)*sum(Twitter)))/((sqrt((n*sum(Instagram^2))-(sum(Instagram))^2))*(sqrt((n*sum(Twitter^2))-(sum(Twitter))^2)))
+#compute the test statistic
+x <- r*sqrt((n-2)/(1-r^2))
+#compute the p-value
+a <- pt(x, df =n-2, lower.tail =FALSE )
+p <- 2*(1-a)
+p
+
+#**Correlation test (Pearson) using the built in R function**
+t <- cor.test(Instagram, Twitter,
+         alternative = "two.sided",
+         method = "pearson", conf.level = 0.95)
+t
+
+#**Display acceptance and rejection regions**
+curve(dt(x,6),xlim=c(-5,5), ylim=c(0,0.4),
+      main="p-value and rejection region", col = "blue", lwd = 2, xlab="x-y",  ylab=expression(t[6]),  yaxs="i")
+segments(qt(0.975,6),0.0001,qt(0.975,6), dt(qt(0.975,6),6),col = "pink", lwd=2)
+segments(qt(0.025,6),0.0001,qt(0.025,6), dt(qt(0.025,6),6),col = "pink", lwd=2)
+curve(dt(x,6),xlim=c(-5,5),main=expression(t[6]), col = "blue", lwd = 2, add = TRUE, yaxs="i")
+abline(v =t$statistic, lty=2, lwd=2, col="red")
+text (0,0.2, paste("Accept", expression(H0)))
+text (2.7,0.08, paste("Reject", expression(H0)),col = "pink")
+text (-2.7,0.08, paste("Reject", expression(H0)),col = "pink")
+text(as.double(t$statistic)-0.15, 0.02, "t", col="red", cex=1.2)
+
+```
+
+The p-value has been computed both manually and using the built-in $\mathsf{R}$ function. As displayed in the code, the p-value is almost 6 times greater than the significance level $\alpha=0.05$, so the null hypothesis $H_0: \rho = 0$ is not rejected, meaning that there is no correlation between the two datasets.
+
+## Exercise 4
+
+**Compute analitically $J(γ,γ;y),J(γ,β;y),J(β,β;y)$.**
+
+Firstly we consider a sample of iid values y from a Weibull distribution, $Y\sim We(\gamma,\beta)$ with parameter $\theta = (\gamma, \beta)$ and density function:
+$$f(y; \gamma,\beta)= \frac{\gamma}{\beta}(\frac{y}{\beta})^{\gamma-1}e^{-(y/\beta)^\gamma} \text{   , y},\gamma,\beta >0$$
+We want to compute the **observed information** matrix, given by:
+$$J(\theta;y) = -\frac{\partial\ell(\theta;y)}{\partial\theta\partial\theta^T}$$
+The log-likelihood is defined as:
+$$\ell(\gamma,\beta;y) = n\log\gamma - n\gamma\log\beta + \gamma\sum_{i=1}^n\log(y_i) - \sum_{i=1}^n(\frac{y_i}{\beta})^\gamma$$
+
+The first step is to calculate the first order partial derivatives with respect to $\beta$ and $\gamma$:
+
+$$
+\begin{aligned}
+\frac{\partial}{\partial\beta}\ell(\gamma,\beta;y) &= -\frac{n}{\beta}\gamma + \frac{\gamma}{\beta^{\gamma+1}}\sum_{i=1}^n y_i^\gamma\\
+\frac{\partial}{\partial\gamma}\ell(\gamma,\beta;y) &= \frac{n}{\gamma} - n\log\beta + \sum_{i=1}^n\log y_i - \sum_{i=1}^n (\frac{y_i}{\beta})^\gamma\log(\frac{y_i}{\beta})
+\end{aligned}
+$$
+
+
+Then, we compute the second partial derivatives: $\frac{\partial^2\ell}{\partial\beta^2}, \frac{\partial^2\ell}{\partial\gamma^2}$ and $\frac{\partial^2\ell}{\partial\beta\partial\gamma}$. Due to the Hessian symmetry,$\frac{\partial^2\ell}{\partial\beta\partial\gamma} = \frac{\partial^2\ell}{\partial\gamma\partial\beta}$
+
+
+$$ 
+\begin{aligned}
+\frac{\partial^2\ell}{\partial\beta^2} &= \frac{n\gamma}{\beta^2} - \frac{\gamma(\gamma + 1)}{\beta^{\gamma+2}}\sum_{i=1}^ny_i^\gamma \\[10pt]
+\frac{\partial^2\ell}{\partial\gamma^2} &= -\frac{n}{\gamma^2} - \sum_{i=1}^n (\frac{y_i}{\beta})^\gamma(\log(\frac{y_i}{\beta}))^2\\[10 pt]
+\frac{\partial^2\ell}{\partial\beta\partial\gamma} &= - \frac{n}{\beta} -\sum_{i=1}^n \left[ \frac{(y_i)^\gamma(-\gamma)}{\beta^{\gamma+1}})\log(\frac{y_i}{\beta}) + (\frac{y_i}{\beta})^\gamma(-\frac{1}{\beta})\right] \\[5 pt]
+&= - \frac{n}{\beta} + \sum_{i=1}^n \frac{y_i^\gamma}{\beta^{\gamma+1}}(\gamma\log(\frac{y_i}{\beta}) + 1) \\
+\end{aligned}
+$$
+ 
+
+The observed information matrix is given by: 
+$$
+\begin{equation*}
+J(\gamma,\beta;y) = -
+\begin{pmatrix}
+\frac{\partial^2\ell(\gamma,\beta)}{\partial\gamma^2} & \frac{\partial^2\ell(\gamma,\beta)}{\partial\beta\partial\gamma}  \\
+\frac{\partial^2\ell(\gamma,\beta)}{\partial\gamma \partial\beta} & \frac{\partial^2\ell(\gamma,\beta)}{\partial\beta^2} \\
+\end{pmatrix}
+\end{equation*}
+$$
+
+So in the end we have:
+$$
+\begin{equation*}
+J(\gamma,\beta;y) =
+\begin{pmatrix}
+\frac{n}{\gamma^2} + \sum_{i=1}^n (\frac{y_i}{\beta})^\gamma(\log(\frac{y_i}{\beta}))^2 &  \frac{n}{\beta} - \sum_{i=1}^n \frac{y_i^\gamma}{\beta^{\gamma+1}}(\gamma\log(\frac{y_i}{\beta}) + 1)  \\
+\frac{n}{\beta} - \sum_{i=1}^n \frac{y_i^\gamma}{\beta^{\gamma+1}}(\gamma\log(\frac{y_i}{\beta}) + 1) &  -\frac{n\gamma}{\beta^2} + \frac{\gamma(\gamma + 1)}{\beta^{\gamma+2}}\sum_{i=1}^ny_i^\gamma \\
+\end{pmatrix}
+\end{equation*}
+$$
+For the other 2 matrices the Weibull distributions change as follow:
+$$f(y; \gamma,\gamma)= \left( \frac{y}{\gamma}\right)^{\gamma-1}e^{-(y/\gamma)^\gamma} \text{   , y},\gamma >0$$
+$$f(y; \beta,\beta)= \left( \frac{y}{\beta}\right)^{\beta-1}e^{-(y/\beta)^\beta} \text{   , y},\beta >0$$
+The log-likelihood functions are:
+$$
+\begin{aligned}
+\ell(\gamma,\gamma;y)&= (\gamma -1)\sum_{i=1}^{n}log(y/\gamma)-\sum_{i=1}^n(y/\gamma)^\gamma = (\gamma-1)\sum_{i=1}^nlog(y_i)-n(\gamma-1)log(\gamma) - \sum_{i=1}^n(y/\gamma)^\gamma \\[10pt]
+\ell(\beta,\beta;y)&= (\beta-1)\sum_{i=1}^nlog(y_i)-n(\beta-1)log(\beta) - \sum_{i=1}^n(y/\beta)^\beta\\[10pt]
+\end{aligned}
+$$
+The first order partial derivatives are:
+
+$$
+\frac{\partial}{\partial\gamma}\ell(\gamma,\gamma;y) = \sum_{i=1}^n log(y_i)-nlog(\gamma)-\frac{n(\gamma-1)}{\gamma}-\sum_{i=1}^n(y_i/\gamma)^\gamma(log(y_i/\gamma)-1)
+$$
+$$
+\frac{\partial}{\partial\beta}\ell(\beta,\beta;y) = \sum_{i=1}^n log(y_i)-nlog(\beta)-\frac{n(\beta-1)}{\beta}-\sum_{i=1}^n(y_i/\beta)^\beta(log(y_i/\beta)-1)
+$$
+And the Second order partial derivatives:
+$$
+\begin{aligned}
+\frac{\partial^2}{\partial\gamma^2}\ell(\gamma,\gamma;y)&=-\frac{n}{\gamma}(\frac{1}{\gamma}+1)-\sum_{i=1}^n(y_i/\gamma)^\gamma\left[\left(log\left(\frac{y_i}{\gamma}\right)-1\right)^2-\frac{1}{\gamma}\right]\\[10pt]
+\frac{\partial^2}{\partial\beta^2}\ell(\beta,\beta;y)&=-\frac{n}{\beta}(\frac{1}{\beta}+1)-\sum_{i=1}^n(y_i/\beta)^\beta\left[\left(log\left(\frac{y_i}{\beta}\right)-1\right)^2-\frac{1}{\beta}\right]
+\end{aligned}
+$$
+Therefore the other two observed information matrices are:
+$$
+\begin{equation*}
+J(\gamma,\gamma;y) = \frac{n}{\gamma}(\frac{1}{\gamma}+1)+\sum_{i=1}^n(y_i/\gamma)^\gamma\left[\left(log\left(\frac{y_i}{\gamma}\right)-1\right)^2-\frac{1}{\gamma}\right]
+\begin{pmatrix}
+1 & 1  \\
+1 & 1 \\
+\end{pmatrix}
+\end{equation*} \\
+$$
+
+$$
+\begin{equation*}
+J(\beta,\beta;y) = \frac{n}{\beta}(\frac{1}{\beta}+1)+\sum_{i=1}^n(y_i/\beta)^\beta\left[\left(log\left(\frac{y_i}{\beta}\right)-1\right)^2-\frac{1}{\beta}\right]
+\begin{pmatrix}
+1 & 1  \\
+1 & 1 \\
+\end{pmatrix}
+\end{equation*}
+$$
+
+## Exercise 5
+
+**Produce the contour plot for the quadratic approximation of the log-likelihood, based on the Taylor series:**
+$$
+l(\theta) - l(\hat{\theta}) \approx -\frac{1}{2}(\theta - \hat\theta)^TJ(\hat\theta)(\theta-\hat\theta)
+$$
+```{r}
+library(dplyr) # %>% operator
+y <- c(155.9, 200.2, 143.8, 150.1,152.1, 142.2, 147, 146, 146,
+ 170.3, 148, 140, 118, 144, 97)
+n <- length(y)
+log_lik_weibull <- function(data, param){
+  -sum(dweibull(data, shape = param[1], scale = param[2], log = TRUE))
+}
+ #define parameters grid
+gamma <- seq(0.1, 15, length=100)
+beta <- seq(100,200, length=100)
+parvalues <- expand.grid(gamma,beta)
+llikvalues <- apply(parvalues, 1, log_lik_weibull, data=y)
+llikvalues <- matrix(-llikvalues, nrow=length(gamma), 
+                      ncol=length(beta), byrow=F)
+conf.levels <- c(0,0.5,0.75,0.9,0.95,0.99)
+ 
+#contour plot
+contour(gamma, beta, llikvalues-max(llikvalues),
+        levels=-qchisq(conf.levels, 2)/2,
+        xlab=expression(gamma),
+        labels=as.character(conf.levels),
+        ylab=expression(beta))
+title('Weibull relative log likelihood')
+
+gammahat <- uniroot(
+  function(x) n/x+sum(log(y))-n*sum(y^x*log(y))/sum(y^x), 
+  c(1e-5,15))$root
+
+betahat<- mean(y^gammahat)^(1/gammahat)
+weib.y.mle<-c(gammahat,betahat)
+#first element is the MLE for the shape gamma, second element the MLE for the scale beta
+print(weib.y.mle)
+ 
+#observed information matrix
+jhat <- matrix(NA,nrow=2,ncol=2)
+jhat[1,1] <- n/gammahat^2+sum((y/betahat)^gammahat*(log(y/betahat))^2)
+jhat[1,2] <-
+jhat[2,1] <- 
+ n/betahat-sum(y^gammahat/betahat^(gammahat+1)*(gammahat*log(y/betahat)+1))
+jhat[2,2]<- -n*gammahat/betahat^2+gammahat*(gammahat+1)/
+             betahat^(gammahat+2)*sum(y^gammahat)
+infoMatrix <- solve(jhat)
+mle.se <- infoMatrix %>% diag %>% sqrt
+print(mle.se)
+```
+```{r}
+# Computing and plotting the quadratic approximation of the
+# log.likelihood
+# param variable is theta
+quadraticApprox <- function(data, gammaHat, betaHat, param){
+    n <- length(data)
+    jhat <- matrix(NA, nrow=2, ncol=2)
+    jhat[1,1] <- 
+      n/gammaHat^2+sum((data/betaHat)^gammaHat*(log(data/betaHat))^2)
+    jhat[1,2] <-
+    jhat[2,1] <- 
+       n/betahat-sum(data^gammaHat/betaHat^(gammaHat+1)*
+                     (gammaHat*log(data/betaHat)+1))
+    jhat[2,2] <-
+      -n*gammaHat/betaHat^2+gammaHat*(gammaHat+1)/
+      betaHat^(gammaHat+2)*sum(data^gammaHat)
+    
+    diffThetaThetaHat <- param - c(gammaHat, betaHat)
+    res <- 
+      -1/2 * crossprod(diffThetaThetaHat, jhat) %>% 
+      tcrossprod(., diffThetaThetaHat)
+    
+    return( res )
+}
+
+gammaHat <- weib.y.mle[1]
+betaHat <- weib.y.mle[2]
+
+quadratricApproxValues <-
+  apply(parvalues, 1, quadraticApprox,
+        data = y, gammaHat = gammaHat, betaHat = betaHat) %>%
+  matrix(., nrow = length(gamma), ncol = length(beta))
+
+contour(gamma, beta, quadratricApproxValues,
+        levels=-qchisq(conf.levels, 2)/2,
+        xlab=expression(gamma),
+        labels=as.character(conf.levels),
+        ylab=expression(beta))
+title("Weibull quandratic approx of the log-likelihood")
+```
+```{r}
+image(gamma, beta, quadratricApproxValues, zlim=c(-6, 0),
+      col=terrain.colors(20),xlab=expression(gamma),
+      ylab=expression(beta))
+title("Weibull quandratic approx of the log-likelihood")
+```
+
+# DAAG
+
+## Exercise 11 cap 3
+
+**The following data represent the total number of aberrant crypt foci (abnormal growths in the colon) observed in seven rats that had been administered a single dose of the carcinogen azoxymethane and sacrificed after six weeks (thanks to Ranjana Bird, Faculty of Human Ecology, University of Manitoba for the use of these data): **
+$$
+87 \; 53 \; 72 \; 90 \; 78 \; 85 \; 83
+$$
+**Enter these data and compute their sample mean and variance. Is the Poisson model appropriate for these data? To investigate how the sample variance and sample mean differ under the Poisson assumption, repeat the following simulation experiment several times:**
+```{r}
+data <- c(87, 53, 72, 90, 78, 85, 83)
+c(mean=mean(data), variance=var(data))
+#n = 7, lambda=78.3
+R<-1000
+n<-7
+lambda<-78.3
+x <- replicate(R, rpois(n, lambda))
+
+samples_stat<- array(0,c(2,R))
+samples_stat[1,]<-apply(x,2, mean)
+samples_stat[2,]<-apply(x,2, var)
+
+c(mean = mean(samples_stat[1,]),variance=mean(samples_stat[2,]))
+
+par (mfrow=c(2,1), mar=c(4,4,2,4), oma=c(0,0,0,0))
+#plot(min(samples_stat[1, ]): max(samples_stat[1, ]),samples_stat[1, ], type = "h" )
+hist(samples_stat[1, ], breaks= 30, probability = TRUE, 
+xlab="estimated mean", main= paste("Means of Poisson with lambda = ",lambda), cex.main=1.0, col="#6AE7CF",border="white")
+abline(v = mean(data), col = "#FF8C45", lwd = 4)
+abline(v = mean(samples_stat[1,]), col = "#AF78CB", lwd = 4)
+legend("topright",c("Data mean","Poisson Mean"),cex=.7,col=c("#FF8C45","#AF78CB"),lty=1:1)
+
+hist(samples_stat[2, ], breaks= 30, probability = TRUE, 
+xlab="estimated variance", main= paste("Variances of Poisson with lambda = ",lambda), cex.main=1.0,col="#6AE7CF",border="white")
+abline(v = var(data), col = "#FF8C45", lwd = 4)
+abline(v = mean(samples_stat[2,]), col = "#AF78CB", lwd = 4)
+legend("topright",c("Data Variance","Poisson Variance Mean"),cex=.7,col=c("#FF8C45","#AF78CB"),lty=1:1)
+```
+
+We can notice that the mean of the Poisson variance is far away from the variance of the data, making it doubtful that these data are from Poisson distribution.
+
+
+
+## Exercise 13 cap 3
+**A Markov chain for the weather in a particular season of the year has the transition matrix, from one day to the next:**
+$$
+Pb = 
+\begin{bmatrix}
+  & Sun & Cloud & Rain\\
+Sun & 0.6 & 0.2 & 0.2\\
+Cloud & 0.2 & 0.4 & 0.4\\
+Rain & 0.4 & 0.3 & 0.3
+\end{bmatrix}
+$$
+
+**It can be shown, using linear algebra, that in the long run this Markov chain will visit the states according to the *stationary* distribution (data corrected according to https://maths-people.anu.edu.au/~johnm/r-book/3edn/updates/updates2011.pdf):**
+$$
+\begin{matrix}
+Sun & Cloud & Rain\\
+0.429 & 0.286 & 0.286
+\end{matrix}
+$$
+
+**A result called the *ergodic* theorem allows us to estimate this distribution by simulating the Markov chain for a long enough time.**
+
+**a. Simulate 1000 values, and calculate the proportion of times the chain visits each of the states. Compare the proportions given by the simulation with the above theoretical proportions.**
+```{r}
+library(dplyr)
+library(zoo)
+library(lattice)
+Markov <- function (N=100, initial.value=1, P) {
+  X <- numeric(N)
+  X[1] <- initial.value # States {0: 'Sunny', 1: 'Cloudy', 2: 'Rainy'};
+  n <- nrow(P)
+  for (i in 2:N){
+    X[i] <- sample(1:n, size=1, prob=P[X[i-1], ])
+  }
+  X - 1
+}
+
+transitionMatrix <- 
+  matrix(data = list(0.6,0.2,0.2,0.2,0.4,0.4,0.4,0.3,0.3),
+         nrow = 3, ncol = 3, byrow = TRUE)
+print(transitionMatrix)
+
+set.seed(200)
+samples <- Markov(N = 1000, P = transitionMatrix)
+
+print("States  {0: 'Sunny', 1: 'Cloudy', 2: 'Rain'}; Number of samples 1000")
+samples %>% 
+  table %>% 
+  prop.table
+
+samples <- Markov(N = 10000, P = transitionMatrix)
+
+print("States  {0: 'Sunny', 1: 'Cloudy', 2: 'Rain'}; Number of samples 10000")
+samples %>% 
+  table %>% 
+  prop.table
+```
+The empirical proportions with a sample of 1000 elements seem to follow the theoretical distribution shown above. To confirm this we tried al so with a sample of 10000 elements and observed that the behaviour is equivalent. Obiviously, they cannot be exactly the same as we are comparing empirical results with theoretical ones.
+
+**b. Here is code that calculates rolling averages of the proportions over a number of simulations and plots the result. It uses the function rollmean() from the zoo package-**
+```{r}
+plotmarkov <-
+  function(n=1000, start=1, window=100, transition=transitionMatrix, npanels=3){
+    xc2 <- Markov(n, start, transition)
+    mav0 <- rollmean(as.integer(xc2==0), window) #mav0 and mav1 are equal
+    mav1 <- rollmean(as.integer(xc2==0), window) #why having two moving averages that are equal ??
+    print( Reduce("&&", mav0 == mav1) )
+    npanel <- cut(1:length(mav0), breaks=seq(from=1, to=length(mav0),
+                  length=npanels+1), include.lowest=TRUE)
+    df <- data.frame(av0=mav0, av1=mav1, x=1:length(mav0),
+                     gp=npanel)
+    print(xyplot(av0+av1 ~ x | gp, data=df, layout=c(1,npanels),
+          type="l", par.strip.text=list(cex=0.65),
+          scales=list(x=list(relation="free"))))
+  }
+
+set.seed(50)
+plotmarkov()
+plotmarkov(window = 750)
+plotmarkov(10000, window = 7500)
+plotmarkov(100000, window = 75000)
+plotmarkov(110000, window = 75000)
+plotmarkov(100000, window = 80000)
+plotmarkov(100000, window = 90000)
+plotmarkov(1000000, window = 750000)
+```
+
+**Try varying the number of simulations and the width of the window. How wide a window is needed to get a good sense of the stationary distribution? This series settles down rather quickly to its stationary distribution (it “burns in” quite quickly). A reasonable width of window is, however, needed to give an accurate indication of the stationary distribution.**
+
+The window size must cover most part of the sample size (i.e. 75%). It is possible to observe the 4-th and the last plot, respectively generated by `plotmarkov(100000, window = 75000)` and `plotmarkov(1000000, window = 750000)` shows clearly how the rolling mean is stable around $0.429$.
+
+## Exercise 6 cap 4
+**Here we generate random normal numbers with a sequential dependence structure:**
+```{r}
+y1 <- rnorm(51)
+y <- y1[-1] + y1[-51]
+acf(y1)
+# acf is ‘autocorrelation function’
+# (see Chapter 9)
+acf(y)
+```
+**Repeat this several times. There should be no consistent pattern in the acf plot for different random samples `y1`. There will be a fairly consistent pattern in the `acf` plot for `y`, a result of the correlation that is introduced by adding to each value the next value in the sequence.**
+
+```{r}
+#set the number of times the procedure is repeated
+n <- 10
+#matrices to store the data
+y1 <- array(0, c(n,51))
+y <- array(0,c(n,50))
+
+#generation of y1 and y values
+for (i in 1:n) {
+  y1[i ,] <- rnorm(51)
+  y[i ,] <- y1[i,-1] + y1[i,-51]
+}
+
+#plots
+for (i in 1:n) {
+  acf(y1[i, ])
+}
+
+for (i in 1:n) {
+  acf(y[i, ])
+}
+```
+
+As seen in the first graphs we can see that there is no consistent path in the acf plot for $y1$, on the other hand when considering the acf plot for $y$ we can see a fairly consistent pattern.
+
+## Exercise 7 cap 4
+
+**Create a function that does the calculations in the first two lines of the previous exercise. Put the calculation in a loop that repeats 25 times. Calculate the mean and variance for each vector `y` that is returned. Store the 25 means in the vector `av`, and store the 25 variances in the vector `v`. Calculate the variance of `av`.**
+
+```{r}
+cor_data<-function(n = 51){
+  y1 <- rnorm(n)
+  return (y1[-1] + y1[-n])
+}
+
+av<-numeric(25)
+v<- numeric(25)
+
+for (i in 1:25){
+  z<-cor_data()
+  av[i]<- mean(z)
+  v[i]<- var(z)
+}
+var(av)
+
+#2 method 
+av1<-numeric(25)
+v1<- numeric(25)
+av1<-replicate(25,mean(cor_data()))
+v1<-replicate(25,var(cor_data()))
+var(av1)
+
+```
+
+
+
+# CS exercises
+
+## Exercise 3.3
+**Rewrite the following, replacing the loop with efficient code:**
+```{r}
+original <-  function(n = 100000){
+  z <- rnorm(n)
+  zneg <- 0; j <- 1
+  for (i in 1:n) {
+    if (z[i]<0) {
+      zneg[j] <- z[i]
+      j <- j + 1
+    }
+  }
+  return(zneg)
+}
+
+optimised <- function(n = 100000){
+  return( Filter(function(el) el < 0, rnorm(n)) )
+}
+
+# Best solution -------------------------
+optimised_v2 <-  function(n = 100000) {
+  z <- rnorm(n)
+  return( z[z < 0] )
+}
+
+print( "Original: " )
+system.time(original(10000000))
+print( "Optimised: " )
+system.time(optimised(10000000))
+print("Optimised v2: ")
+system.time(optimised_v2(10000000))
+
+```
+
+**Confirm that your rewrite is faster but gives the same result (use system.time()).**
+
+We proceeded with two attemps, one with the function `Filter`, which failed as it resulted in a far worst performance that the original solution.
+Our solution is contained in the function `optimised_v2` by using the expression `z[z < 0]` which returns a new array with just the negative element of `z`
+
+## Exercise 3.5
+
+**Consider solving the matrix equation $Ax = y$ for $x$ , where $y$ is a known $n$ vector and $A$ is a known $n × n$ matrix. The formal solution to the problem is $x = A^{-1} y$ , but it is possible to solve the equation directly, without actually forming $A^{-1}$ . This question explores this direct solution. Read the help file for `solve` before trying it.**
+
+**1. First create an $A$ , $x$ and $y$ satisfying $Ax = y$.**
+```{r}
+set.seed(0); n <- 1000
+A <- matrix(runif(n*n),n,n); x.true <- runif(n)
+y <- A%*%x.true
+```
+
+**The idea is to experiment with solving $Ax = y$ for $x$ , but with a known
+truth to compare the answer to.**
+
+**2. Using `solve` , form the matrix $A^{−1}$ explicitly and then form $x_1 = A^{−1}y$ . Note how long this takes. Also assess the mean absolute differ-
+ence between $x1$ and $x.true$ (the approximate mean absolute ‘error’ in
+the solution).**
+
+**3. Now use solve to directly solve for $x$ without forming $A^-1$ . Note how
+long this takes and assess the mean absolute error of the result.**
+
+**4. What do you conclude?**
+
+```{r}
+library(dplyr)
+set.seed(0)
+n <- 1000
+A <- matrix(runif(n*n),n,n)
+x.true <- runif(n)
+y <- A %*% x.true 
+
+manual <- function(A, xTrue, y) {
+  A_inv <- solve(A)
+  x <- A_inv %*% y 
+  mean(abs(x-xTrue)) %>% print
+  return(x)
+}
+
+auto <- function(A, xTrue, y){
+  x <- solve(A,y)
+  mean(abs(x-xTrue)) %>% print
+  return(x)
+}
+
+system.time(manual(A, x.true, y))
+system.time(auto(A, x.true, y))
+```
+We can conclude that computing the inverse matrix $A^{-1}$ and then explicitly find $x_1$ is less time efficient and results in a greter error when compared with using \mathbf{solve} to directly solve for $x$ without computing the inverse matrix.

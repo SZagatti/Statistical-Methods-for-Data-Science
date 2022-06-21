@@ -1,0 +1,302 @@
+---
+title: "Homework 5"
+author: "Group I: Demirbilek, Taroni, Zagatti"
+date: "Spring 2020"
+output:
+  html_document:
+    toc: no
+header-includes:
+- \usepackage{color}
+- \definecolor{Purple}{HTML}{911146}
+- \definecolor{Orange}{HTML}{CF4A30}
+- \setbeamercolor{alerted text}{fg=Orange}
+- \setbeamercolor{frametitle}{bg=Purple}
+institute: University of Udine & University of Trieste
+graphics: yes
+fontsize: 10pt
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center', warning=FALSE, message=FALSE, fig.asp=0.625, dev='png', global.par = TRUE, dev.args=list(pointsize=10), fig.path = 'figs/', fig.height = 10, fig.width = 10)
+```
+
+```{r setup, include=FALSE}
+library(MASS)
+library(knitr)
+local({
+  hook_plot = knit_hooks$get('plot')
+  knit_hooks$set(plot = function(x, options) {
+    paste0('\n\n----\n\n', hook_plot(x, options))
+  })
+})
+```
+
+# {.tabset}
+
+## DAAG {.tabset}
+
+
+### Exercise 4.21
+
+**Suppose the mean reaction time to a particular stimulus has been estimated in several previous studies,and it appears to be approximately normally distributed with mean 0.35 seconds with standard deviation 0.1 seconds. On the basis of 10 new observations, the mean reaction time is estimated to be 0.45 seconds with an estimated standard deviation of 0.15 seconds. Based on the sample information, what is the maximum likelihood estimator for the true mean reaction time? What is the Bayes’ estimate of the mean reaction time?**
+
+*solution :*
+
+We start by calculating the likelihood function for our sample, with $n=10$
+$$ 
+L(\mu;x)=\prod_{i=1}^n\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x_i-\mu)^2}{2\sigma^2}}=\frac{1}{(\sqrt{2\pi})^n\sigma^n}e^{-\sum_{i=1}^n\frac{(x_i-\mu)^2}{2\sigma^2}}
+$$
+If we take the logarithm we get
+$$
+\ell(\mu;x)=-n\ln(\sqrt{2\pi}\sigma)-\sum_{i=1}^n\frac{(x_i-\mu)^2}{2\sigma^2}
+$$
+The maximum likelihood estimate is found with
+$$
+\hat\mu=\underset{\mu\in\Theta}{\operatorname{argmax}\ell(\mu)}
+$$
+So we have to calculate the partial derivative of the log likelihood with respect to $\mu$ and set it equal 0
+$$
+\frac{\partial}{\partial\mu}\ell(\mu;x)=\frac{1}{\sigma^2}\sum_{i=1}^n(x_i-\mu)=0 \\
+\sum_{i=1}^n(x_i-\mu)=0 \\
+\hat\mu=\frac{1}{n}\sum_{i=1}^nx_i
+$$
+Thus we see that our maximum likelihood estimator for the true mean reaction time is the sample mean.
+
+If we want to calculate the Bayes’ estimate of the mean reaction time we start by writing the posterior relation as a proportion, focusing only on what is function of $\mu$.
+$$
+\pi(\mu|x)\propto L(\mu;x)\pi_0(\mu) \\
+\pi(\mu|x)\propto e^{-\frac{1}{2\sigma^2}\sum_{i=1}^n(x_i-\mu)^2}e^{-\frac{1}{2{\sigma_0}^2}(\mu-\mu_0)^2} \\
+\pi(\mu|x)\propto e^{-\frac{1}{2\sigma^2}\sum_{i=1}^n(x_i^2+\mu^2-2x_i\mu)}e^{-\frac{1}{2{\sigma_0}^2}(\mu^2+{\mu_0}^2-2\mu\mu_0)} \\
+\pi(\mu|x)\propto e^{-\frac{1}{2\sigma^2}(\sum_{i=1}^nx_i^2+n\mu^2-2n\bar x\mu)}e^{-\frac{1}{2{\sigma_0}^2}(\mu^2+{\mu_0}^2-2\mu\mu_0)}
+$$
+We can get rid of the terms that don't depend on $\mu$
+$$
+\pi(\mu|x)\propto e^{-\frac{1}{2\sigma^2}(n\mu^2-2n\bar x\mu)}e^{-\frac{1}{2{\sigma_0}^2}(\mu^2-2\mu\mu_0)} \\
+$$
+Then we try to write everything as an exponential function of $\mu$.
+$$
+\pi(\mu|x)\propto e^{-\frac{1}{2}\Big[\frac{n}{\sigma^2}(\mu^2-2\bar x\mu)+\frac{1}{{\sigma_0}^2}(\mu^2-2\mu\mu_0)\Big]} \\
+\propto e^{-\frac{1}{2}\Big[\mu^2\Big(\frac{n}{\sigma^2}+\frac{1}{{\sigma_0}^2}\Big)-2\mu\Big(\frac{n}{\sigma^2}\bar x+\frac{1}{{\sigma_0}^2}\mu_0\Big)\Big]} \\
+\propto e^{-\frac{1}{2}\Big(\frac{n+\sigma^2/{\sigma_0}^2}{\sigma^2}\Big)\Big[\mu^2-2\mu\Big(\frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}\Big)\Big]}
+$$
+At this point we can add and subtract $\Big(\frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}\Big)^2$ inside square brackets and I can also get rid of the one with negative sign just because it doesn't depend on $\mu$.
+$$
+\pi(\mu|x)\propto e^{-\frac{1}{2}\Big(\frac{n+\sigma^2/{\sigma_0}^2}{\sigma^2}\Big)\Big[\mu^2-2\mu\Big(\frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}\Big)+\Big(\frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}\Big)^2\Big]}
+$$
+Finally we complete the square and we get the gaussian form:
+$$
+\pi(\mu|x)\propto e^{-\frac{1}{2}\Big(\frac{n+\sigma^2/{\sigma_0}^2}{\sigma^2}\Big)\Big(\mu-\frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}\Big)^2}
+$$
+Thus we can calculate the posterior estimate of the mean through the equation:
+$$
+\hat \mu = \frac{n\bar x+\sigma^2/{\sigma_0}^2\mu_0}{n+\sigma^2/{\sigma_0}^2}
+$$
+getting as result for the Bayes’ estimate of the mean reaction time
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+n <- 10
+xbar <- 0.45
+sigma <- 0.15
+mu0 <- 0.35
+sigma0 <- 0.1
+
+muhat <- (n*xbar + mu0*sigma**2/sigma0**2)/(n + sigma**2/sigma0**2) 
+
+print(muhat)
+```
+
+### Exercise 7.2
+
+**Use anova() to compare the two models: 
+`roller.lm <- lm(depression ~ weight, data = roller)`, `roller.lm2 <- lm(depression ~ weight + I(weigth^2), data = roller)`
+Is there any justification for including the squared term?**
+
+
+*solution :* 
+
+```{r, echo=TRUE,warning=FALSE}
+library(DAAG)
+#help(roller)
+roller.lm <- lm(depression ~ weight, data = roller)
+roller.lm2 <- lm(depression ~ weight + I(weight^2), data = roller)
+anova(roller.lm , roller.lm2)
+
+```
+These two models differ only in the use of `weight^2`. So ANOVA will test whether or not including this leads to a significant improvement. Adding this term spawned non-significant result (p=0.259), hhus adding `weight^2` didn't lead to a better result. In other words, the second model didn't explain the data well.
+
+## CS {.tabset}
+
+
+### Exercise 3.2
+**Rewrite the following to eliminate the loops, first using `apply` and then
+using `rowSums`:**
+
+```{r, echo=TRUE,warning=FALSE}
+X <- matrix(runif(100000),1000,100); 
+z <- rep(0,1000) 
+for (i in 1:1000) {
+for (j in 1:100) {z[i] <- z[i] + X[i,j]} }
+
+```
+
+**Confirm that all three versions give the same answers, but that your rewrites
+are much faster than the original. (`system.time` is a useful function.)**
+
+
+*solution :* 
+In order to test how fast each version is, we use the function `system.time` that determines how much real and CPU time (in seconds) the currently running R process takes to execute.
+
+In order to check that all three processes provide the same results we use the function `identical` that returns a logical value `TRUE` if the two arguments are exactly the same.
+
+```{r, echo=TRUE,warning=FALSE}
+# Definition of the used variables
+X <- matrix(runif(100000),1000,100)
+z <- rep(0,1000)
+
+# Time Evaluation for the first version
+system.time( for (i in 1:1000) {
+for (j in 1:100) {
+z[i] <- z[i]+X[i,j]  }})
+
+# Time evaluation of the second version (apply function)
+system.time(z1 <- apply(X, 1, sum))
+
+# Check between the first and second result
+identical(z,z1)
+
+# Time evaluation of the third version (rowSums function)
+system.time(z2 <- rowSums(X))
+
+# Check between the first and third result
+identical(z,z2)
+
+```
+
+
+From the results of the checks obtained with `identical` we see that both `apply` and `rowSums` provide the same result as the first version proprosed. By comparing the results of `system.time` it is clear that the two solutions proposed are much faster then the first one, in particular `rowSums` results to be the most efficient one.
+
+
+### Exercise 4.4
+
+**Suppose that you have $n$ independent measurements of times between major aircraft disasters, $t_i$ , and believe that the probability density function for the $t_i$’s is of the form: $f(t) = ke^{−\lambda t^2}$ $t \geq 0$ where $λ$ and $k$ are the same for all $i$.**
+
+**(a) By considering normal p.d.f., show that  $k = \sqrt{4 \lambda/\pi}.$**
+
+
+*solution (a):*
+
+$t \geq 0$ and $t = (x - \mu)$ so $x \geq \mu$. Since we consider only the positive side (right side) of normal p.d.f, we need to multiply it by 2 to match the p.d.f $ke^{-\lambda t^2}$. So after this process we have:
+
+$$f(t) = \frac{2}{\sigma\sqrt{2\pi}}\exp\{-\frac{(x - \mu)^2}{2\sigma^2}\} = ke^{-\lambda t^2}$$
+
+
+$k = \frac{2}{\sigma\sqrt{2\pi}}$ , $\lambda = \frac{1}{2\sigma^2}$. Here we can find that
+
+$$
+k = \frac{2}{\sqrt{2\pi \sigma^2}} = \sqrt{\frac{4}{2\pi \sigma^2}} = \sqrt{\frac{4\lambda}{\pi}}
+$$
+
+**(b) Obtain a maximum likelihood estimator for $\lambda$.**
+
+*solution (b):*
+
+The likelihood of the given expression is the following
+
+$$
+L(t) = \prod_{i=1}^{n}ke^{−\lambda t_i^2}
+$$
+The log likelihood function carries the same information of the likelihood function, but it is more manageable, so for simplicity we are going to use the log likelihood.
+
+$$
+\ell(t) = n \log(k) -\lambda \sum_{i=1}^{n}t_i^2 = n \log(\sqrt{4\lambda/ \pi} ) -\lambda \sum_{i=1}^{n}t_i^2 
+$$
+To find the maximum likelihood estimator of $\lambda$ we need to derivate the log likelihood with respect to $\lambda$ and find the $\lambda$ by setting the equation equal to zero.
+
+$$
+\frac{d\ell}{d\lambda} = \frac{n}{2\lambda}-\sum_{i=1}^{n}t_i^2 \\
+\lambda = \frac{n}{2\sum_{i=1}^{n}t_i^2}
+$$
+
+
+**(c) Given observation of $T_i$ (in days) of 243, 14, 121, 63, 45, 407 and 34  use a generalised likelihood ratio test to
+test $H_0 : \lambda = 10^{-4}$ against the alternative of no restriction on $\lambda$ at the $5$% significance level. Note that if $V \sim X_1^2$ then $Pr[V \leq 3.841] = 0.95$.**
+
+*solution (c):*
+
+The likelihood test statistic is given by $W(\lambda_0) = 2(\ell(\hat{\lambda})-\ell(\lambda_0))$
+
+```{r echo=TRUE,warning=FALSE}
+log_lik_aircraft <- function(data,lambda){
+  length(data) * log(sqrt(4*lambda/pi)) - lambda * sum(data^2)
+}
+
+data <-  c(243, 14, 121, 63, 45, 407 ,34)
+mle <- length(data) / (2 * sum(data^2))
+cat("Maximum likelihood estimation for lambda:",mle)
+
+lambda_0 <- log_lik_aircraft(data,10^-4)
+# since there is no restriction on lambda mle is chosen
+lambda_mle <- log_lik_aircraft(data,mle)
+
+lrt <- 2 * (lambda_mle - lambda_0)
+# to find p-value by using Pr(W >= w_obs)
+cat("p-value for test is:",pchisq(lrt,df=1,lower.tail = FALSE))
+
+```
+We have a very small p-value, which indicates that there is strong evidence against the null hypothesis.
+
+## Bayesian {.tabset}
+
+### BC 2.5
+
+**Suppose you are interested in estimating the average total snowfall per year $\mu$ (in inches) for a large city on the East Coast of the United States. Assume individual yearly snow totals $y_1,\dots, y_n$ are collected from a population that is assumed to be normally distributed with mean $\mu$ and known standard deviation $\sigma = 10$ inches.**
+
+**(a) Before collecting data, suppose you believe that the mean snowfall $\mu$ can be the values 20, 30, 40, 50, 60, and 70 inches with the following probabilities: 0.1, 0.15, 0.25, 0.25, 0.15, 0.1 respectively. Place the values of $\mu$ in the vector `mu` and the associated prior probabilities in the vector `prior`.**
+
+**(b) Suppose you observe the yearly snowfall totals 38.6, 42.4, 57.5, 40.5, 51.7, 67.1, 33.4, 60.9, 64.1, 40.1, 40.7, and 6.4 inches. Enter these data into a vector `y` and compute the sample mean `ybar`.**
+
+**(c) In this problem, the likelihood function is given by** 
+
+$$L(\mu) \propto \exp \biggl(-\frac{n}{2\sigma^2}(\mu-\bar{y})^2\biggr)$$
+**where $\bar{y}$ is the sample mean. Compute the likelihood on the list of values in `mu` and place the likelihood values in the vector `like`.** 
+
+**(d) One can compute the posterior probabilities for $\mu$ using the formula**
+
+$$ post=prior*like/sum(prior*like)$$
+**Compute the posterior probabilities of $\mu$ for this example.** 
+
+**(e) Using the function `discint`, find an 80\% probability interval for $\mu$**
+
+*solution:*
+
+```{r echo=TRUE,warning=FALSE}
+library('LearnBayes')
+
+sigma <- 10
+
+# a)
+mu <- c(20,30,40,50,60,70)
+mu <- array(mu)
+prior <- c(0.1,0.15,0.25,0.25,0.15,0.1)
+prior <- array(prior)
+
+# b)
+y <- c(38.6, 42.4, 57.5, 40.5, 51.7, 67.1, 33.4, 60.9, 64.1, 40.1, 6.4)
+y <- array(y)
+n <- dim(y)
+ybar <- mean(y)
+
+# c) likelihood
+like <- exp(- n/(2*sigma^2)*(mu-ybar)^2)
+
+# d) posterior
+post <- prior*like/sum(prior*like)
+# Build the discrete probability distribution
+probdist <- cbind(mu,post)
+print(probdist)
+
+# e) Compute the 80% probability interval for mu
+discint(probdist, 0.8)
+
+```
+
+`set` is the set of values of the probability interval and `prob` is the probability content of the interval.
